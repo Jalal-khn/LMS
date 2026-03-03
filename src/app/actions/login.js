@@ -1,4 +1,5 @@
-"use server"
+"use server";
+
 import prisma from "@/lib/db";
 import Jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
@@ -9,26 +10,40 @@ export default async function LogIn({ email, password }) {
     return { error: "fill all credentials" };
   }
 
-  const User = await prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { email },
+    include: {
+      studentInfo: true, 
+    },
   });
 
-  if (!User) {
-    return { error: "user not found" };
-  }
+  if (!user) return { error: "user not found" };
+  if (user.password !== password) return { error: "wrong password" };
 
-  if (User.password !== password) {
-    return { error: "wrong password" };
-  }
-  const SECRET = "mykey"
-  const Token = Jwt.sign({id:User.id, email:User.email}, SECRET)
+  const token = Jwt.sign(
+    { id: user.id, email: user.email },
+    "mykey"
+  );
 
-  cookies().set("jalal", Token, {
-    httpOnly:true,
-    secure:true,
-    path:"/"
+  cookies().set("jalal", token, {
+    httpOnly: true,
+    secure: true,
+    path: "/",
   });
-  throw  redirect("/dashboard")
+
+ 
+  if (user.studentInfo) {
+    const course = user.studentInfo.course;
+
+   if(course){
+    redirect("/graphic")
+   } else {
+      redirect("/dashboard");
+   }
+
+    
+  } else{
+    redirect("/dashboard")
+  }
+
 }
-
-

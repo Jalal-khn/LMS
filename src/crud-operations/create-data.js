@@ -1,24 +1,27 @@
 "use server";
-import prisma from "@/lib/db";
 
-export default async function CreateData({ name, age, course, image }) {
-  if (!name || !age || !course || !image) {
-    return { error: "Please fill all the credentials" };
+import prisma from "@/lib/db";
+import getSession from "@/app/actions/session";
+
+export default async function CreateData({ age, course, image }) {
+  const session = await getSession();
+
+  if (!session?.id) {
+    return { error: "Unauthorized" };
   }
 
   try {
-    await prisma.StudentInfo.create({
+    await prisma.studentInfo.create({
       data: {
-        name,
+        userId: session.id,
         age: Number(age),
         course,
         image,
       },
     });
 
-    return { success: "Successfully registered",course };
+    return { success: "Enrolled successfully", course };
   } catch (error) {
-    console.error("Something went wrong:", error);
-    return { error: "Sorry for the inconvenience" };
+    return { error: "Already enrolled or error occurred" };
   }
 }
